@@ -32,8 +32,8 @@ class SchoologyApi
 
   public function __construct( $consumer_key, $consumer_secret, $domain = '', $token_key = '', $token_secret = '')
   {
-    $this->_api_base = defined('API_BASE') ? API_BASE : 'http://api.schoology.com/v1';
-    $this->_api_site_base = defined('API_SITE_BASE') ? API_SITE_BASE : 'http://www.schoology.com';
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? API_BASE : 'http://api.schoology.com/v1';
+    $this->_api_site_base = defined('SCHOOLOGY_SITE_BASE') ? API_SITE_BASE : 'http://www.schoology.com';
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
     $this->_domain = (strlen($domain)) ? ('http://'.$domain) : $this->_api_site_base;
@@ -192,7 +192,7 @@ class SchoologyApi
     
     // Something's gone wrong
     if($response->http_code > 400){
-      throw new Exception($response->result, $response->http_code);
+      throw new Exception($response->raw_result, $response->http_code);
     }
 
     return $response;
@@ -446,7 +446,8 @@ class SchoologyApi
     $response = (object)curl_getinfo( $curl_resource );
     $response->headers = $this->_parseHttpHeaders(mb_substr($result, 0, $response->header_size));
     $body = mb_substr($result, $response->header_size);
-  
+    $response->raw_result = $body;
+        
     $response->result = is_string($result) ? json_decode(trim($body)) : '';
   
     // If no result decoded and the body length is > 0, the reponse was not in JSON. Return the raw body.

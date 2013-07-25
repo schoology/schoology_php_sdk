@@ -61,9 +61,9 @@ class SchoologyContentApi extends SchoologyApi {
         break;
 
       case 'file':
-        $info = array(
-          'upload_id' => $this->apiFileUpload($info['filepath'])
-        );
+        $info = array('file-attachment' => array(
+          'id' => $this->apiFileUpload($info['filepath'])
+        ));
         $api_result = $this->api('content_app/import/file', 'POST', $info); 
         break;
     }
@@ -79,12 +79,10 @@ class SchoologyContentApi extends SchoologyApi {
    * @return string
    *    Import Url, used to redirect the user to the Schoology Import Form
    */
-  public function buildImportUrl($import_id, $return_url = '', $scheme = 'https') {
+  public function buildImportUrl($import_id, $return_url = '', $scheme = 'http') {
     if(!$return_url) {
       $return_url = (@$_SERVER['HTTPS'] && @$_SERVER['HTTPS'] != 'off' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-      $return_url .= ($return_url[strlen($return_url) - 1] != '&' ? '&' : '' ) . 'imported=1';
     }
-    return $scheme . '://' . $this->schoology_domain . '/content_app/import?id='. $import_id .'&return_url=' . $return_url;
+    return $scheme . '://' . $this->schoology_domain . '/content_app/import/'. $import_id .'?return_url=' . $return_url;
   }
-  
 }
