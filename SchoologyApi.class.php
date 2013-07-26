@@ -32,8 +32,8 @@ class SchoologyApi
 
   public function __construct( $consumer_key, $consumer_secret, $domain = '', $token_key = '', $token_secret = '')
   {
-    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? API_BASE : 'http://api.schoology.com/v1';
-    $this->_api_site_base = defined('SCHOOLOGY_SITE_BASE') ? API_SITE_BASE : 'http://www.schoology.com';
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
+    $this->_api_site_base = defined('SCHOOLOGY_SITE_BASE') ? SCHOOLOGY_SITE_BASE : 'http://www.schoology.com';
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
     $this->_domain = (strlen($domain)) ? ('http://'.$domain) : $this->_api_site_base;
@@ -285,7 +285,7 @@ class SchoologyApi
     $http_headers = array(
        'Accept: application/json',
        'Content-Type: application/json',
-       'Content-Length: ' . $content_length
+       'Content-Length: ' . $content_length,
     );
   
     $curl_headers = array_merge( $http_headers , $extra_headers );

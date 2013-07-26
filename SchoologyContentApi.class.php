@@ -72,6 +72,37 @@ class SchoologyContentApi extends SchoologyApi {
   }
   
   /**
+   * Bulk import content into Schoology
+   * 
+   * @param array   $body   content info
+   * 
+   * eg,
+   *  $body = array(
+   *     'link' => array(
+   *       array('title' => $link_title, 'url' => $link_url),
+   *       ...
+   *     ),
+   *     
+   *     'embed' => $embeds = array(
+   *       array('title' => $embed_title, 'embed' => $embed_body),
+   *       ...
+   *     ),
+   *     
+   *     'file-attachment' => array('id' => array(
+   *       $schoology->apiFileUpload($filepath),
+   *       ....
+   *     )),
+   *   );
+   * 
+   * @return
+   *    import id and redirect url to Schoology content import form
+   */
+  public function importBulk($body) {
+    $api_result = $this->api('content_app/import', 'POST', $body);
+    return $api_result->result;
+  }
+  
+  /**
    * Build url to Schooology import form
    * 
    * @param int      $import_id   schoology import id
@@ -80,9 +111,18 @@ class SchoologyContentApi extends SchoologyApi {
    *    Import Url, used to redirect the user to the Schoology Import Form
    */
   public function buildImportUrl($import_id, $return_url = '', $scheme = 'http') {
+    if(is_array($import_id)) {
+      $import_id_qs = '';
+      foreach($import_id as $i) {
+        $import_id_qs .= 'import_id[]='.$i.'&';
+      }
+    }
+    else {
+      $import_id_qs = 'import_id[]='.$import_id.'&';
+    }
     if(!$return_url) {
       $return_url = (@$_SERVER['HTTPS'] && @$_SERVER['HTTPS'] != 'off' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     }
-    return $scheme . '://' . $this->schoology_domain . '/content_app/import/'. $import_id .'?return_url=' . $return_url;
+    return $scheme . '://' . $this->schoology_domain . '/content_app/import?'. $import_id_qs .'return_url=' . $return_url;
   }
 }
