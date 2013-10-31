@@ -495,11 +495,6 @@ interface SchoologyApi_OauthStorage
    */
   public function saveRequestTokens($uid, $token_key, $token_secret);
   
-  /*
-   * Useful for OAuth 2.0 flows that do not need request tokens
-   */
-  public function saveAccessTokens($uid, $token_key, $token_secrety);
-  
   /**
   * Retrieve request tokens for a given user ID
   */
