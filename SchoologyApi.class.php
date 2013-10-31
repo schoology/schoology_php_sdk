@@ -9,7 +9,6 @@ class SchoologyApi
   private $_domain = '';
   private $_is_two_legged = '';
   
-  
   private $_api_supported_methods = array('POST','GET','PUT','DELETE','OPTIONS');
   private $_api_base = 'http://api.ahandler.dev.schoologize.com/v1';
   private $_api_site_base = 'http://www.schoology.com';
@@ -32,8 +31,15 @@ class SchoologyApi
 
 
 
-  public function __construct( $consumer_key, $consumer_secret, $domain = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
+  public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
   {
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
+    if($site_base) {
+      $this->_api_site_base = $site_base;
+    }
+    else {
+      $this->_api_site_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_SITE_BASE : 'https://www.schoology.com';
+    }
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
     $this->_domain = (strlen($domain)) ? ('http://'.$domain) : $this->_api_site_base;
@@ -211,7 +217,68 @@ class SchoologyApi
 
     return $response;
   }
-
+  
+  
+  /**
+  * Upload a file to Schoology servers
+  * The file upload is a 2 step process.
+  * 1) Aquire permission and a unique upload endpoint
+  * 2) PUT the contents of the file to the endpoint from step 2
+  *
+  * @param string $filepath file path
+  * @return
+  * Upload id
+  */
+  public function apiFileUpload($filepath)
+  {
+    // step 1: set empty placeholder and get unique upload enpoint
+    $filename = basename($filepath);
+    $filesize = filesize($filepath);
+    $md5_checksum = md5_file($filepath);
+  
+    $url = 'upload';
+    $method = 'POST';
+    $body = array(
+      'filename' => $filename,
+      'filesize' => $filesize,
+      'md5_checksum' => $md5_checksum
+    );
+    $api_result = $this->api($url, $method, $body);
+  
+    // step2: PUT contents of file to enpoint above
+    $fid = $api_result->result->id;
+    $url = $api_result->result->upload_location;
+    $headers = array(
+      'Accept: application/json',
+      'Connection: keep-alive',
+      'Keep-Alive: 300',
+      'Authorization: '. $this->_makeOauthHeaders( $url , 'PUT'),
+      'Cookie: XDEBUG_SESSION=netbeans-xdebug'
+     );
+    $fp = fopen($filepath, 'r');
+  
+    $curl_resource = curl_init();
+      curl_setopt($curl_resource, CURLOPT_URL, $url);
+      curl_setopt($curl_resource, CURLOPT_RETURNTRANSFER, 1);
+      curl_setopt($curl_resource, CURLOPT_HTTPHEADER, $headers);
+      curl_setopt($curl_resource, CURLOPT_PUT, TRUE);
+      curl_setopt($curl_resource, CURLOPT_INFILE, $fp);
+      curl_setopt($curl_resource, CURLOPT_INFILESIZE, $filesize);
+    $result = curl_exec($curl_resource);
+  
+    if ($result === false) {
+      throw new Exception('cURL execution failed');
+    }
+    
+    $response = $this->_getApiResponse($curl_resource, $result);
+    curl_close($curl_resource);
+  
+    if ($response->http_code !== 204) {
+      throw new Exception('cURL execution failed');
+    }
+    
+    return $fid;
+  }
   
   private function _curlRequest($url = '', $method = '' , $body = array() , $extra_headers = array() )
   {
@@ -409,6 +476,21 @@ class SchoologyApi
       }
     }
     return $retVal;
+  }
+  
+  private function _getApiResponse($curl_resource, $result)
+  {
+    $response = (object)curl_getinfo( $curl_resource );
+    $response->headers = $this->_parseHttpHeaders(mb_substr($result, 0, $response->header_size));
+    $body = mb_substr($result, $response->header_size);
+    $response->raw_result = $body;
+    
+    $response->result = is_string($result) ? json_decode(trim($body)) : '';
+    // If no result decoded and the body length is > 0, the reponse was not in JSON. Return the raw body.
+    if(is_null($response->result) && $response->size_download > 0){
+      $response->result = $body;
+    }
+    return $response;
   }
 
 }
