@@ -9,8 +9,8 @@ class SchoologyApi
   private $_is_two_legged = '';
 
   private $_api_supported_methods = array('POST','GET','PUT','DELETE','OPTIONS');
-  private $_api_base = 'http://api.ahandler.dev.schoologize.com/v1';
-  private $_api_site_base = 'http://www.schoology.com';
+  private $_api_base = '';
+  private $_api_site_base = '';
   
   private $_saml_cert_path;
 
@@ -212,7 +212,7 @@ class SchoologyApi
 
     // Something's gone wrong
     if($response->http_code > 400){
-      throw new Exception($response->result, $response->http_code);
+      throw new Exception($response->raw_result, $response->http_code);
     }
 
     return $response;
