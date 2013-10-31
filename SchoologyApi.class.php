@@ -317,20 +317,9 @@ class SchoologyApi
     $result = curl_exec($curl_resource);
 
     if ($result === false )
-    throw new Exception('cURL execution failed');
+      throw new Exception('cURL execution failed');
   
-    $response = (object)curl_getinfo( $curl_resource );
-    $response->headers = $this->_parseHttpHeaders(mb_substr($result, 0, $response->header_size));
-    $body = mb_substr($result, $response->header_size);
-  
-    $response->result = is_string($result) ? json_decode(trim($body)) : '';
-  
-    // If no result decoded and the body length is > 0, the reponse was not in JSON. Return the raw body.
-    if(is_null($response->result) && $response->size_download > 0){
-      $response->result = $body;
-    }
-  
-    return $response;
+    return $this->_getApiResponse($curl_resource, $result);
   }
   
   private function _authenticateOauth($storage, $uid){
