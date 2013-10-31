@@ -6,7 +6,6 @@ class SchoologyApi
   private $_consumer_secret;
   private $_token_key = '';
   private $_token_secret = '';
-  private $_domain = '';
   
   private $_api_supported_methods = array('POST','GET','PUT','DELETE','OPTIONS');
   private $_api_base = '';
@@ -30,13 +29,17 @@ class SchoologyApi
 
 
 
-  public function __construct( $consumer_key, $consumer_secret, $domain = '', $token_key = '', $token_secret = '')
+  public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '')
   {
     $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
-    $this->_api_site_base = defined('SCHOOLOGY_SITE_BASE') ? SCHOOLOGY_SITE_BASE : 'http://www.schoology.com';
+    if($site_base) {
+      $this->_api_site_base = $site_base;
+    }
+    else {
+      $this->_api_site_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_SITE_BASE : 'https://www.schoology.com';
+    }
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
-    $this->_domain = (strlen($domain)) ? ('http://'.$domain) : $this->_api_site_base;
     // If you don't want to use this class's OAuth verification
     // management, you can do so yourself and pass in an 
     // access key and access secret. Otherwise, leave blank.
@@ -60,7 +63,6 @@ class SchoologyApi
   public function validateLogin(){
     // Load SAML libraries
     require_once __DIR__.'/phpsaml/Sperantus/SAML2/SP/Response.php';
-    
     // Check if we are receiving a SAML response
     if (isset($_REQUEST['SAMLResponse'])) { // allow either $_GET or $_POST
       // This object decodes & gives access to SAML Response attributes & name id
@@ -126,28 +128,31 @@ class SchoologyApi
    * Initialize and set the proper access tokens for the 
    * user ID from the given storage engine
    */
-  public function authorize(SchoologyApi_OauthStorage $storage, $uid){
+  public function authorize(SchoologyApi_OauthStorage $storage, $uid, $app_session_timestamp){
     // Get stored access tokens for the given user ID
     $access_tokens = $storage->getAccessTokens($uid);
     // Access tokens were found - set them for API requests
-    
+
     $get_new_tokens = FALSE;
     if($access_tokens){
       $this->_token_key = $access_tokens['token_key'];
       $this->_token_secret = $access_tokens['token_secret'];
       // Check to make sure a request works
-      try{
-        $this->apiResult('users/me');
+      $web_session_info = $this->apiResult('app-user-info');
+      
+      // Something's wrong with the access tokens we have. Revoke them.
+      if($web_session_info->api_uid != $uid){        
+        $this->deauthorize($storage, $uid);
+        $this->_token_key = '';
+        $this->_token_secret = '';
+        $get_new_tokens = TRUE;
       }
-      catch(Exception $e){
-        if($e->getCode() == 401){
-          // Something's wrong with the access tokens we have. Revoke them.
-          $this->deauthorize($storage, $uid);
-          $this->_token_key = '';
-          $this->_token_secret = '';
-          $get_new_tokens = TRUE;
-        }
+
+      // User does not have a web session or the sgy session is after the apps session - no reason to be using the app. The user needs to logout
+      if(!$get_new_tokens && (!$web_session_info->web_session_timestamp || $web_session_info->web_session_timestamp > $app_session_timestamp)){
+        throw new ExpiredSGYWebSession();
       }
+
     }
     else {
       $get_new_tokens = TRUE;
@@ -184,12 +189,12 @@ class SchoologyApi
       throw new Exception('API method '.$method.' is not supported. Must be '.implode(',',$this->_api_supported_methods));
 
     $api_url = $this->_api_base . '/' . ltrim($url,'/');
-
+    
     // add the oauth headers
     $extra_headers[] = 'Authorization: '.$this->_makeOauthHeaders( $api_url , $method , $body );
 
     $response = $this->_curlRequest( $api_url , $method , $body , $extra_headers );
-    
+
     // Something's gone wrong
     if($response->http_code > 400){
       throw new Exception($response->raw_result, $response->http_code);
@@ -294,7 +299,7 @@ class SchoologyApi
     curl_setopt_array( $curl_resource , $curl_options );
   
     $result = curl_exec($curl_resource);
-  
+
     if ($result === false ) {
       throw new Exception('cURL execution failed');
     }
@@ -318,11 +323,11 @@ class SchoologyApi
 
       // Now that we have a request token, forward the user to approve it
       $params = array(
-              'return_url=' . urlencode('http://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']),
+              'return_url=' . urlencode('https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']),
               'oauth_token=' . urlencode($result['oauth_token']),
       );
       $query_string = implode('&', $params);
-      header('Location: ' . $this->_domain . '/oauth/authorize?'  . $query_string);
+      header('Location: ' . $this->_api_site_base . '/oauth/authorize?'  . $query_string);
       exit;
     }
     // The user has approved the token and returned to this page
@@ -489,6 +494,11 @@ interface SchoologyApi_OauthStorage
    * Store the request tokens for a given user ID
    */
   public function saveRequestTokens($uid, $token_key, $token_secret);
+  
+  /*
+   * Useful for OAuth 2.0 flows that do not need request tokens
+   */
+  public function saveAccessTokens($uid, $token_key, $token_secrety);
   
   /**
   * Retrieve request tokens for a given user ID
