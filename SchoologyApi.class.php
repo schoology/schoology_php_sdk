@@ -180,7 +180,7 @@ class SchoologyApi
     static $redirects = 0;
     static $result;
     $result = $this->api($url, $method, $body, $extra_headers);
-    //follow redirets for two_legged calls
+    //follow redirects for two_legged calls
     if ($this->_is_two_legged && $result->http_code == 303){
       $redirects++;
       $redirect = parse_url($result->headers['Location']);
