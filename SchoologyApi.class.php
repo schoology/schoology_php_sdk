@@ -6,9 +6,8 @@ class SchoologyApi
   private $_consumer_secret;
   private $_token_key = '';
   private $_token_secret = '';
-  private $_domain = '';
   private $_is_two_legged = '';
-  
+
   private $_api_supported_methods = array('POST','GET','PUT','DELETE','OPTIONS');
   private $_api_base = 'http://api.ahandler.dev.schoologize.com/v1';
   private $_api_site_base = 'http://www.schoology.com';
@@ -42,7 +41,6 @@ class SchoologyApi
     }
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
-    $this->_domain = (strlen($domain)) ? ('http://'.$domain) : $this->_api_site_base;
     // If you don't want to use this class's OAuth verification
     // management, you can do so yourself and pass in an 
     // access key and access secret. Otherwise, leave blank.
@@ -66,7 +64,6 @@ class SchoologyApi
   public function validateLogin(){
     // Load SAML libraries
     require_once __DIR__.'/phpsaml/Sperantus/SAML2/SP/Response.php';
-    
     // Check if we are receiving a SAML response
     if (isset($_REQUEST['SAMLResponse'])) { // allow either $_GET or $_POST
       // This object decodes & gives access to SAML Response attributes & name id
@@ -132,28 +129,31 @@ class SchoologyApi
    * Initialize and set the proper access tokens for the 
    * user ID from the given storage engine
    */
-  public function authorize(SchoologyApi_OauthStorage $storage, $uid){
+  public function authorize(SchoologyApi_OauthStorage $storage, $uid, $app_session_timestamp){
     // Get stored access tokens for the given user ID
     $access_tokens = $storage->getAccessTokens($uid);
     // Access tokens were found - set them for API requests
-    
+
     $get_new_tokens = FALSE;
     if($access_tokens){
       $this->_token_key = $access_tokens['token_key'];
       $this->_token_secret = $access_tokens['token_secret'];
       // Check to make sure a request works
-      try{
-        $this->apiResult('users/me');
+      $web_session_info = $this->apiResult('app-user-info');
+      
+      // Something's wrong with the access tokens we have. Revoke them.
+      if($web_session_info->api_uid != $uid){        
+        $this->deauthorize($storage, $uid);
+        $this->_token_key = '';
+        $this->_token_secret = '';
+        $get_new_tokens = TRUE;
       }
-      catch(Exception $e){
-        if($e->getCode() == 401){
-          // Something's wrong with the access tokens we have. Revoke them.
-          $this->deauthorize($storage, $uid);
-          $this->_token_key = '';
-          $this->_token_secret = '';
-          $get_new_tokens = TRUE;
-        }
+
+      // User does not have a web session or the sgy session is after the apps session - no reason to be using the app. The user needs to logout
+      if(!$get_new_tokens && (!$web_session_info->web_session_timestamp || $web_session_info->web_session_timestamp > $app_session_timestamp)){
+        throw new ExpiredSGYWebSession();
       }
+
     }
     else {
       $get_new_tokens = TRUE;
@@ -204,7 +204,7 @@ class SchoologyApi
       throw new Exception('API method '.$method.' is not supported. Must be '.implode(',',$this->_api_supported_methods));
 
     $api_url = $this->_api_base . '/' . ltrim($url,'/');
-
+    
     // add the oauth headers
     $extra_headers[] = 'Authorization: '.$this->_makeOauthHeaders( $api_url , $method , $body );
 
@@ -316,8 +316,10 @@ class SchoologyApi
 
     $result = curl_exec($curl_resource);
 
-    if ($result === false )
+
+    if ($result === false ) {
       throw new Exception('cURL execution failed');
+    }
   
     return $this->_getApiResponse($curl_resource, $result);
   }
@@ -338,11 +340,11 @@ class SchoologyApi
 
       // Now that we have a request token, forward the user to approve it
       $params = array(
-              'return_url=' . urlencode('http://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']),
+              'return_url=' . urlencode('https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']),
               'oauth_token=' . urlencode($result['oauth_token']),
       );
       $query_string = implode('&', $params);
-      header('Location: ' . $this->_domain . '/oauth/authorize?'  . $query_string);
+      header('Location: ' . $this->_api_site_base . '/oauth/authorize?'  . $query_string);
       exit;
     }
     // The user has approved the token and returned to this page

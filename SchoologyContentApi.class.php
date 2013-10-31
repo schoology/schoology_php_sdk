@@ -1,12 +1,13 @@
 <?php
 require_once 'SchoologyApi.class.php';
+require_once 'SchoologyExceptions.php';
 
 class SchoologyContentApi extends SchoologyApi {
-  private $schoology_domain = '';
+  private $schoology_site_base = '';
   
-  public function __construct( $consumer_key, $consumer_secret, $domain = '', $token_key = '', $token_secret = '') {
-    $this->schoology_domain = $domain;
-    parent::__construct($consumer_key, $consumer_secret, $domain, $token_key, $token_secret);
+  public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '') {
+    $this->schoology_site_base = $site_base;
+    parent::__construct($consumer_key, $consumer_secret, $site_base, $token_key, $token_secret);
   }
   
   /**
@@ -110,7 +111,7 @@ class SchoologyContentApi extends SchoologyApi {
    * @return string
    *    Import Url, used to redirect the user to the Schoology Import Form
    */
-  public function buildImportUrl($import_id, $return_url = '', $scheme = 'http') {
+  public function buildImportUrl($import_id, $return_url = '') {
     if(is_array($import_id)) {
       $import_id_qs = '';
       foreach($import_id as $i) {
@@ -123,6 +124,6 @@ class SchoologyContentApi extends SchoologyApi {
     if(!$return_url) {
       $return_url = (@$_SERVER['HTTPS'] && @$_SERVER['HTTPS'] != 'off' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     }
-    return $scheme . '://' . $this->schoology_domain . '/content_app/import?'. $import_id_qs .'return_url=' . $return_url;
+    return $this->schoology_site_base . '/content_app/import?'. $import_id_qs .'return_url=' . $return_url;
   }
 }
