@@ -32,7 +32,7 @@ class SchoologyApi
 
   public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
   {
-    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.ahandler.dev.schoologize.com/v1';
     if($site_base) {
       $this->_api_site_base = $site_base;
     }
@@ -180,14 +180,16 @@ class SchoologyApi
     static $redirects = 0;
     static $result;
     $result = $this->api($url, $method, $body, $extra_headers);
-    //follow redirects for two_legged calls
-    if ($this->_is_two_legged && $result->http_code == 303){
+
+    $redirect_codes = array(301,302,303,305,307);
+    if (in_array($result->http_code, $redirect_codes)){
       $redirects++;
       $redirect = parse_url($result->headers['Location']);
       $redirect_url = ltrim($redirect['path'], '/v1/');
       $this->apiResult($redirect_url);
     }
-    if ($redirects > $this->curl_opts[CURLOPT_MAXREDIRS]){
+    //limit redirects from a single call to 5
+    if ($redirects > 5){
       return FALSE;
     }
     //reset redirect count
@@ -384,13 +386,13 @@ class SchoologyApi
     $oauth_config = array(
      'oauth_consumer_key' => $this->_consumer_key,
      'oauth_nonce' => $nonce,
-     'oauth_signature_method' => 'PLAINTEXT',
+     'oauth_signature_method' => 'HMAC-SHA1',
      'oauth_timestamp' => $timestamp,
+     'oauth_token' => $this->_token_key,
      'oauth_version' => '1.0',
     );
-    if (!$this->_is_two_legged){
-     $oauth_config['oauth_token'] = $this->_token_key;
-     $oauth_config['oauth_signature_method'] = 'HMAC-SHA1';
+    if ($this->_is_two_legged){
+     $oauth_config['oauth_signature_method'] = 'PLAINTEXT';
     }
     $oauth_config['oauth_signature'] = $this->_makeOauthSig( $url , $method , $oauth_config );
 
@@ -407,7 +409,7 @@ class SchoologyApi
   {
     $base_string = $this->_makeBaseString( $url , $method , $oauth_config );
     $oauth_str = $this->_urlencode($this->_consumer_secret).'&'.$this->_urlencode($this->_token_secret);
-    if ($this->_is_two_legged){
+    if ($oauth_config['oauth_signature_method'] == 'PLAINTEXT'){
       return $oauth_str;
     }
     $signature = $this->_urlencode( base64_encode(hash_hmac("sha1", $base_string, $oauth_str, true)) );
