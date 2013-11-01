@@ -6,7 +6,8 @@ class SchoologyApi
   private $_consumer_secret;
   private $_token_key = '';
   private $_token_secret = '';
-  
+  private $_is_two_legged = '';
+
   private $_api_supported_methods = array('POST','GET','PUT','DELETE','OPTIONS');
   private $_api_base = '';
   private $_api_site_base = '';
@@ -29,7 +30,7 @@ class SchoologyApi
 
 
 
-  public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '')
+  public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
   {
     $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
     if($site_base) {
@@ -49,7 +50,7 @@ class SchoologyApi
     }
     
     $this->curl_resource = curl_init();
-    
+    $this->_is_two_legged = $two_legged;
     $this->_saml_cert_path = __DIR__ . '/app.schoology.com.crt';
   }
   
@@ -176,7 +177,19 @@ class SchoologyApi
    * Wrapper for api function below that only returns the relevant result
    */
   public function apiResult($url , $method = 'GET', $body = array(), $extra_headers = array()){
+    static $redirects = 0;
+    static $result;
     $result = $this->api($url, $method, $body, $extra_headers);
+
+    $redirect_codes = array(301,302,303,305,307);
+    if (in_array($result->http_code, $redirect_codes) && $redirects < 5 ){
+      $redirects++;
+      $redirect = parse_url($result->headers['Location']);
+      $redirect_url = ltrim($redirect['path'], '/v1/');
+      $this->apiResult($redirect_url);
+    }
+    //reset redirect count
+    $redirects = 0;
     return $result->result;
   }
 
@@ -203,23 +216,24 @@ class SchoologyApi
     return $response;
   }
   
+  
   /**
-   * Upload a file to Schoology servers
-   *   The file upload is a 2 step process.
-   *     1) Aquire permission and a unique upload endpoint
-   *     2) PUT the contents of the file to the endpoint from step 2
-   * 
-   * @param   string  $filepath   file path
-   * @return 
-   *  Upload id
-   */
+  * Upload a file to Schoology servers
+  * The file upload is a 2 step process.
+  * 1) Aquire permission and a unique upload endpoint
+  * 2) PUT the contents of the file to the endpoint from step 2
+  *
+  * @param string $filepath file path
+  * @return
+  * Upload id
+  */
   public function apiFileUpload($filepath)
   {
     // step 1: set empty placeholder and get unique upload enpoint
     $filename = basename($filepath);
     $filesize = filesize($filepath);
     $md5_checksum = md5_file($filepath);
-    
+  
     $url = 'upload';
     $method = 'POST';
     $body = array(
@@ -228,7 +242,7 @@ class SchoologyApi
       'md5_checksum' => $md5_checksum
     );
     $api_result = $this->api($url, $method, $body);
-    
+  
     // step2: PUT contents of file to enpoint above
     $fid = $api_result->result->id;
     $url = $api_result->result->upload_location;
@@ -238,25 +252,25 @@ class SchoologyApi
       'Keep-Alive: 300',
       'Authorization: '. $this->_makeOauthHeaders( $url , 'PUT'),
       'Cookie: XDEBUG_SESSION=netbeans-xdebug'
-    );
+     );
     $fp = fopen($filepath, 'r');
-    
+  
     $curl_resource = curl_init();
       curl_setopt($curl_resource, CURLOPT_URL, $url);
       curl_setopt($curl_resource, CURLOPT_RETURNTRANSFER, 1);
       curl_setopt($curl_resource, CURLOPT_HTTPHEADER, $headers);
       curl_setopt($curl_resource, CURLOPT_PUT, TRUE);
-      curl_setopt($curl_resource, CURLOPT_INFILE, $fp);  
+      curl_setopt($curl_resource, CURLOPT_INFILE, $fp);
       curl_setopt($curl_resource, CURLOPT_INFILESIZE, $filesize);
     $result = curl_exec($curl_resource);
-    
+  
     if ($result === false) {
       throw new Exception('cURL execution failed');
     }
     
     $response = $this->_getApiResponse($curl_resource, $result);
     curl_close($curl_resource);
-    
+  
     if ($response->http_code !== 204) {
       throw new Exception('cURL execution failed');
     }
@@ -290,20 +304,21 @@ class SchoologyApi
     $http_headers = array(
        'Accept: application/json',
        'Content-Type: application/json',
-       'Content-Length: ' . $content_length,
+       'Content-Length: ' . $content_length
     );
   
     $curl_headers = array_merge( $http_headers , $extra_headers );
     $curl_options[ CURLOPT_HTTPHEADER ] = $curl_headers;
-  
+
     curl_setopt_array( $curl_resource , $curl_options );
-  
+
     $result = curl_exec($curl_resource);
+
 
     if ($result === false ) {
       throw new Exception('cURL execution failed');
     }
-    
+  
     return $this->_getApiResponse($curl_resource, $result);
   }
   
@@ -372,7 +387,9 @@ class SchoologyApi
      'oauth_token' => $this->_token_key,
      'oauth_version' => '1.0',
     );
-
+    if ($this->_is_two_legged){
+     $oauth_config['oauth_signature_method'] = 'PLAINTEXT';
+    }
     $oauth_config['oauth_signature'] = $this->_makeOauthSig( $url , $method , $oauth_config );
 
     $oauth_headers = array();
@@ -381,12 +398,16 @@ class SchoologyApi
     }
 
     return "OAuth realm=\"\", ".implode(", ",$oauth_headers);
+   
   }
 
   private function _makeOauthSig( $url = '' , $method = '' , &$oauth_config = '' )
   {
     $base_string = $this->_makeBaseString( $url , $method , $oauth_config );
     $oauth_str = $this->_urlencode($this->_consumer_secret).'&'.$this->_urlencode($this->_token_secret);
+    if ($oauth_config['oauth_signature_method'] == 'PLAINTEXT'){
+      return $oauth_str;
+    }
     $signature = $this->_urlencode( base64_encode(hash_hmac("sha1", $base_string, $oauth_str, true)) );
 
     return $signature;
@@ -446,20 +467,18 @@ class SchoologyApi
     return $retVal;
   }
   
-  private function _getApiResponse($curl_resource, $result) 
+  private function _getApiResponse($curl_resource, $result)
   {
     $response = (object)curl_getinfo( $curl_resource );
     $response->headers = $this->_parseHttpHeaders(mb_substr($result, 0, $response->header_size));
     $body = mb_substr($result, $response->header_size);
     $response->raw_result = $body;
-        
+    
     $response->result = is_string($result) ? json_decode(trim($body)) : '';
-  
     // If no result decoded and the body length is > 0, the reponse was not in JSON. Return the raw body.
     if(is_null($response->result) && $response->size_download > 0){
       $response->result = $body;
     }
-    
     return $response;
   }
 
