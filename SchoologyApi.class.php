@@ -182,7 +182,7 @@ class SchoologyApi
     $result = $this->api($url, $method, $body, $extra_headers);
 
     $redirect_codes = array(301,302,303,305,307);
-    if (in_array($result->http_code, $redirect_codes) && ($redirects < 1) ){
+    if (in_array($result->http_code, $redirect_codes) && $redirects < 5 ){
       $redirects++;
       $redirect = parse_url($result->headers['Location']);
       $redirect_url = ltrim($redirect['path'], '/v1/');
