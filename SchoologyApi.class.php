@@ -32,7 +32,7 @@ class SchoologyApi
 
   public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
   {
-    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.ahandler.dev.schoologize.com/v1';
     if($site_base) {
       $this->_api_site_base = $site_base;
     }
@@ -182,15 +182,11 @@ class SchoologyApi
     $result = $this->api($url, $method, $body, $extra_headers);
 
     $redirect_codes = array(301,302,303,305,307);
-    if (in_array($result->http_code, $redirect_codes)){
+    if (in_array($result->http_code, $redirect_codes) && ($redirects < 1) ){
       $redirects++;
       $redirect = parse_url($result->headers['Location']);
       $redirect_url = ltrim($redirect['path'], '/v1/');
       $this->apiResult($redirect_url);
-    }
-    //limit redirects from a single call to 5
-    if ($redirects > 5){
-      return FALSE;
     }
     //reset redirect count
     $redirects = 0;
