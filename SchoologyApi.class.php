@@ -138,15 +138,26 @@ class SchoologyApi
     if($access_tokens){
       $this->_token_key = $access_tokens['token_key'];
       $this->_token_secret = $access_tokens['token_secret'];
-      // Check to make sure a request works
-      $web_session_info = $this->apiResult('app-user-info');
       
-      // Something's wrong with the access tokens we have. Revoke them.
-      if($web_session_info->api_uid != $uid){        
-        $this->deauthorize($storage, $uid);
-        $this->_token_key = '';
-        $this->_token_secret = '';
-        $get_new_tokens = TRUE;
+      // Check to make sure a request works
+      try {
+        $web_session_info = $this->apiResult('app-user-info');
+      
+        if($web_session_info->api_uid != $uid){        
+          $this->deauthorize($storage, $uid);
+          $this->_token_key = '';
+          $this->_token_secret = '';
+          $get_new_tokens = TRUE;
+        }
+      } catch (Exception $e) {
+        $bad_http_codes = array(400,401,403,404);
+        // Something's wrong with the access tokens we have. Revoke them.
+        if(in_array($e->getCode(), $bad_http_codes)) {     
+          $this->deauthorize($storage, $uid);
+          $this->_token_key = '';
+          $this->_token_secret = '';
+          $get_new_tokens = TRUE;
+        }
       }
 
       // User does not have a web session or the sgy session is after the apps session - no reason to be using the app. The user needs to logout
@@ -250,8 +261,7 @@ class SchoologyApi
       'Accept: application/json',
       'Connection: keep-alive',
       'Keep-Alive: 300',
-      'Authorization: '. $this->_makeOauthHeaders( $url , 'PUT'),
-      'Cookie: XDEBUG_SESSION=netbeans-xdebug'
+      'Authorization: '. $this->_makeOauthHeaders( $url , 'PUT')
      );
     $fp = fopen($filepath, 'r');
   
