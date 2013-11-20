@@ -296,10 +296,20 @@ class SchoologyApi
     $curl_options[ CURLOPT_URL ] = $url;
   
     switch($method){
-      case 'POST': $curl_options[ CURLOPT_POST ] = true; break;
-      case 'PUT': $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'PUT'; break;
-      case 'DELETE': $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'DELETE'; break;
-      case 'GET': $curl_options[ CURLOPT_HTTPGET ] = true; break;
+      case 'POST': 
+        $curl_options[ CURLOPT_POST ] = TRUE; 
+        $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'POST';
+        break;
+      case 'PUT': 
+        $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'PUT'; 
+        break;
+      case 'DELETE': 
+        $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'DELETE'; 
+        break;
+      case 'GET': 
+        $curl_options[ CURLOPT_HTTPGET ] = TRUE; 
+        $curl_options[ CURLOPT_CUSTOMREQUEST ] = 'GET';
+        break;
     }
   
     if(in_array($method,array('POST','PUT')) && !empty($body))
@@ -310,7 +320,7 @@ class SchoologyApi
       $curl_options[ CURLOPT_POSTFIELDS ] = $json_body;
     }
     $content_length = isset($json_body) ? strlen($json_body) : '0';
-  
+
     $http_headers = array(
        'Accept: application/json',
        'Content-Type: application/json',
