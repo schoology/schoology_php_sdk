@@ -477,7 +477,7 @@ class SchoologyApi
     foreach( $fields as $field ) {
       if( preg_match('/([^:]+): (.+)/m', $field, $match) ) {
         $callback = function($tmp){ 
-            return strtoupper("\0"); 
+            return strtoupper($tmp[0]); 
         };
         $match[1] = preg_replace_callback('/(?<=^|[\x09\x20\x2D])./', 
                 $callback,
