@@ -362,7 +362,7 @@ class SchoologyApi
               'oauth_token=' . urlencode($result['oauth_token']),
       );
       $query_string = implode('&', $params);
-      header('Location: ' . $this->_api_site_base . '/oauth/authorize?'  . $query_string);
+      header('Location: https://' . $this->_api_site_base . '/oauth/authorize?'  . $query_string);
       exit;
     }
     // The user has approved the token and returned to this page
