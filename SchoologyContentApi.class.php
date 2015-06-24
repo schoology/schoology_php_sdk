@@ -1,4 +1,5 @@
 <?php
+namespace Schoology\SchoologyPhpSdk;
 require_once 'SchoologyApi.class.php';
 require_once 'SchoologyExceptions.php';
 
