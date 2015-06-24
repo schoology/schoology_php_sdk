@@ -1,0 +1,7 @@
+{
+  "name": "schoology/schoology-php-sdk",
+  "description": "The Schoology SDK encompasses all necessary parts, including the initial SSO SAML login request, requesting an oAuth access token, and making calls to the Schoology API. It is by no means necessary to create an application. If you don't want to use one or are writing an application not in PHP, you can take a look at them as an example for the types of operations that you will need to do.",
+  "require": {
+    "php": ">=5.3.0"
+  }
+}
