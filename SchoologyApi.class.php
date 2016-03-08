@@ -32,7 +32,7 @@ class SchoologyApi
 
   public function __construct( $consumer_key, $consumer_secret, $site_base = '', $token_key = '', $token_secret = '', $two_legged = FALSE)
   {
-    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'http://api.schoology.com/v1';
+    $this->_api_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_API_BASE : 'https://api.schoology.com/v1';
     if($site_base) {
       $this->_api_site_base = $site_base;
     }
