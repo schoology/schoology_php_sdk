@@ -1,15 +1,15 @@
-#Schoology API - PHP SDK
+# Schoology API - PHP SDK
 
 The Schoology SDK encompasses all necessary parts, including the initial SSO SAML login request, requesting an oAuth access token, and making calls to the Schoology API. It is by no means necessary to create an application. If you don't want to use one or are writing an application not in PHP, you can take a look at them as an example for the types of operations that you will need to do.
 
-##Two-legged oauth
+## Two-legged oauth
 Every Schoology user can generate unique two-legged oauth keys:
 1. Log into Schoology
 2. Navigate to /api. 
 3. Click "Request API Keys"
 4. Consumer Key and Consumer Secret will be generated
 
-######Making two-legged API call with SDK
+###### Making two-legged API call with SDK
 1. Create constants for your consumer key and consumer secret
 2. When constructing the Class, the token_key & token_secret parameters should be blank and the two_legged parameter should be set to TRUE
 ```php
@@ -17,12 +17,12 @@ require_once('application/schoology_sdk/SchoologyApi.class.php');
 $this->schoology = new SchoologyApi(SCHOOLOGY_CONSUMER_KEY, SCHOOLOGY_CONSUMER_SECRET, '', '','', TRUE); 
 ```
 
-##Three-legged oauth
+## Three-legged oauth
 When using the API on behalf of a Schoology Application, you must use each applications' unique oauth credentials. To find the credentials after adding an app:
 1. Navigate to /apps/publisher
 2. For each app click on the "options" action link and oauth info to see the application's consumer key and consumer secret.
 
-######Making three-legged API call with SDK
+###### Making three-legged API call with SDK
 When making three-legged API calls the authorization flow is more complex:
 1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens.
 2. Using the request token another call will be made to /oauth/authorize to get an access token.
@@ -31,15 +31,15 @@ The PHP SDK will take care of this entire OAuth handshake for you
 
 For more detailled information about Authorization be see http://developers.schoology.com/api-documentation/authentication
 
-##Using the API
+## Using the API
 All calls to the API can be done using the api() function in SchoologyApi.class.php file
-######api() parameters
+###### api() parameters
 1. $url  - The API endpoint you are accessing (Ex: 'users/5' to get user with uid = 5)
 2. $method - Defaults to GET 
 3. $body - If doing a POST or PUT, a request body needs to be sent in
 4. $extra_headers  - Any extra request Headers
 
-######Sample API Response
+###### Sample API Response
 A response with a 20x response code means the request was successful:
 
 Headers
@@ -96,6 +96,6 @@ Body
 }
 ```
 
-A response with a 40x response code means the request was unsuccessful :
+A response with a 40x response code means the request was unsuccessful.
 
 For any additional information please visit http://developers.schoology.com/
