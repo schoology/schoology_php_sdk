@@ -101,3 +101,7 @@ Body
 A response with a 40x response code means the request was unsuccessful.
 
 For any additional information please visit http://developers.schoology.com/
+
+###### Postman example
+
+To verify your API keys work correctly, import the postman example and paste in your API keys. Make the request_token call first, followed by the authorize call with the return_url and oauth_token.
