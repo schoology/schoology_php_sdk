@@ -24,7 +24,7 @@ When using the API on behalf of a Schoology Application, you must use each appli
 
 ###### Making three-legged API call with SDK
 When making three-legged API calls the authorization flow is more complex:
-1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens. The URL for the request should be api.schoology.com/v1/oauth_request_token
+1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens. The URL for the request should be api.schoology.com/v1/oauth/request_token
 2. Using the oauth_token from the request_token call in step1, redirect the user to schoology login page with return_url and oauth_token. The URL for the authorize request should be www.schoology.com/oauth/authorize
 3. the user will see the schoology login page. after the username / password are authenticated, the user is redirected to app.schoology.com/oauth/authorize page
 4. the user clicks either approve or deny to grant your application access. this will create the access token and redirect the user to your website
