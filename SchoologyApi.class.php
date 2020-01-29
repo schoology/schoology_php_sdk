@@ -353,7 +353,8 @@ class SchoologyApi
       $result = array();
       parse_str($api_result->result, $result);
 
-      // Store the request token in our DB
+      // Store the request token in our DB. oauth_token is stored with name token_key and oauth_token_secret uses name token_secret
+      // for more details look at saveRequestTokens function
       $storage->saveRequestTokens($uid, $result['oauth_token'], $result['oauth_token_secret']);
 
       // Now that we have a request token, forward the user to approve it
