@@ -37,7 +37,7 @@ class SchoologyApi
       $this->_api_site_base = $site_base;
     }
     else {
-      $this->_api_site_base = defined('SCHOOLOGY_API_BASE') ? SCHOOLOGY_SITE_BASE : 'https://www.schoology.com';
+      $this->_api_site_base = defined('SCHOOLOGY_SITE_BASE') ? SCHOOLOGY_SITE_BASE : 'https://www.schoology.com';
     }
     $this->_consumer_key = $consumer_key;
     $this->_consumer_secret = $consumer_secret;
