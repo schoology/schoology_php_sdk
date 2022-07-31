@@ -24,9 +24,11 @@ When using the API on behalf of a Schoology Application, you must use each appli
 
 ###### Making three-legged API call with SDK
 When making three-legged API calls the authorization flow is more complex:
-1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens.
-2. Using the request token another call will be made to /oauth/authorize to get an access token.
-3. This access token can then be used to make the correct Authorization headers to make normal API calls. This access token should be stored in a database and used for future API calls
+1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens. The URL for the request should be api.schoology.com/v1/oauth/request_token
+2. Using the oauth_token from the request_token call in step1, redirect the user to schoology login page with return_url and oauth_token. The URL for the authorize request should be www.schoology.com/oauth/authorize
+3. the user will see the schoology login page. after the username / password are authenticated, the user is redirected to app.schoology.com/oauth/authorize page
+4. the user clicks either approve or deny to grant your application access. this will create the access token and redirect the user to your website
+5. This access token can then be used to make the correct Authorization headers to make normal API calls. This access token should be stored in a database and used for future API calls
 The PHP SDK will take care of this entire OAuth handshake for you
 
 For more detailled information about Authorization be see http://developers.schoology.com/api-documentation/authentication
@@ -99,3 +101,7 @@ Body
 A response with a 40x response code means the request was unsuccessful.
 
 For any additional information please visit http://developers.schoology.com/
+
+## Postman example
+
+To verify your API keys work correctly, import the postman example and paste in your API keys. Make the request_token call first, followed by the authorize call with the return_url and oauth_token.
