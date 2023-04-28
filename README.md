@@ -1,6 +1,6 @@
 # Schoology API - PHP SDK
 
-The Schoology SDK encompasses all necessary parts, including the initial SSO SAML login request, requesting an oAuth access token, and making calls to the Schoology API. It is by no means necessary to create an application. If you don't want to use one or are writing an application not in PHP, you can take a look at them as an example for the types of operations that you will need to do.
+The Schoology SDK encompasses all necessary parts, including the initial SSO SAML login request, requesting an oAuth access token, and making calls to the Schoology API. It is by no means necessary to create an app. If you don't want to use one or are writing an app not in PHP, you can take a look at them as an example for the types of operations that you will need to do.
 
 ## Two-legged oauth
 Every Schoology user can generate unique two-legged oauth keys:
@@ -13,18 +13,18 @@ Every Schoology user can generate unique two-legged oauth keys:
 1. Create constants for your consumer key and consumer secret
 2. When constructing the Class, the token_key & token_secret parameters should be blank and the two_legged parameter should be set to TRUE
 ```php
-require_once('application/schoology_sdk/SchoologyApi.class.php');
+require_once('app/schoology_sdk/SchoologyApi.class.php');
 $this->schoology = new SchoologyApi(SCHOOLOGY_CONSUMER_KEY, SCHOOLOGY_CONSUMER_SECRET, '', '','', TRUE); 
 ```
 
 ## Three-legged oauth
-When using the API on behalf of a Schoology Application, you must use each applications' unique oauth credentials. To find the credentials after adding an app:
+When using the API on behalf of a Schoology App, you must use each app' unique OAuth credentials. To find the credentials after adding an app:
 1. Navigate to /apps/publisher
-2. For each app click on the "options" action link and oauth info to see the application's consumer key and consumer secret.
+2. For each app click on the "options" action link and oauth info to see the app's consumer key and consumer secret
 
 ###### Making three-legged API call with SDK
 When making three-legged API calls the authorization flow is more complex:
-1. Using the application's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens.
+1. Using the app's consumer key and consumer secret a call will be made to /oauth/request_token to get request tokens.
 2. Using the request token another call will be made to /oauth/authorize to get an access token.
 3. This access token can then be used to make the correct Authorization headers to make normal API calls. This access token should be stored in a database and used for future API calls
 The PHP SDK will take care of this entire OAuth handshake for you
@@ -56,7 +56,7 @@ X-Schoology: API
 Content-Length: 681
 Access-Control-Allow-Origin: *
 Connection: close
-Content-Type: application/json; charset=UTF-8
+Content-Type: app/json; charset=UTF-8
 ```
 Body
 ```json
